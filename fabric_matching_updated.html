@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fabric Sources Matching Activity</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: white;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            padding: 10px;
+        }
+
+        .logo {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            width: 100px;
+            height: auto;
+            z-index: 1000;
+            background: white;
+            border-radius: 15px;
+            padding: 5px;
+            box-shadow: 0 2px 5px rgba(102, 73, 162, 0.2);
+        }
+
+        .container {
+            width: 100%;
+            max-width: 100%;
+            margin: 40px auto 0;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(102, 73, 162, 0.1);
+            overflow: hidden;
+            border: 1px solid #f0f0f0;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #664ba2 0%, #ff7f50 100%);
+            color: white;
+            padding: 15px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 1.5em;
+            margin-bottom: 5px;
+        }
+
+        .instructions {
+            background: #f8f9ff;
+            padding: 10px;
+            border-left: 3px solid #664ba2;
+            margin: 10px;
+            border-radius: 5px;
+            font-size: 0.9em;
+        }
+
+        .fabrics-container {
+            background: #fff8f0;
+            padding: 10px;
+            margin: 10px;
+            border-radius: 10px;
+            border: 1px solid #ffe6cc;
+        }
+
+        .fabrics-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            justify-content: center;
+            padding: 5px;
+            overflow-x: auto;
+        }
+
+        .fabric-item {
+            background: linear-gradient(135deg, #ff7f50, #ff9966);
+            color: white;
+            padding: 8px 15px;
+            border-radius: 15px;
+            cursor: grab;
+            font-weight: bold;
+            box-shadow: 0 2px 4px rgba(255, 127, 80, 0.3);
+            transition: all 0.3s ease;
+            border: 1px solid transparent;
+            font-size: 0.85em;
+            white-space: nowrap;
+        }
+
+        .fabric-item:hover {
+            transform: scale(1.05);
+            box-shadow: 0 3px 6px rgba(255, 127, 80, 0.4);
+            background: linear-gradient(135deg, #664ba2, #8a6bb1);
+        }
+
+        .fabric-item:active {
+            cursor: grabbing;
+        }
+
+        .fabric-item.dragging {
+            opacity: 0.5;
+            transform: rotate(5deg);
+        }
+
+        .sources-container {
+            background: #f8f9ff;
+            padding: 20px;
+            margin: 10px;
+            border-radius: 10px;
+            border: 1px solid #e6e6ff;
+            margin-top: auto;
+        }
+
+        .sources-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            justify-content: center;
+            padding: 10px;
+            overflow-x: auto;
+        }
+
+        .source-item {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(102, 73, 162, 0.1);
+            transition: all 0.3s ease;
+            border: 2px dashed transparent;
+            min-width: 180px;
+            flex: 1;
+            max-width: 250px;
+        }
+
+        .source-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(102, 73, 162, 0.2);
+            border-color: #ff7f50;
+        }
+
+        .source-item.drag-over {
+            border-color: #ff7f50;
+            background: #fff8f0;
+        }
+
+        .source-header {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .source-icon {
+            width: 120px;
+            height: 120px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            object-fit: cover;
+            border: 2px solid #e6e6ff;
+        }
+
+        .source-name {
+            font-weight: bold;
+            font-size: 0.95em;
+            color: #664ba2;
+            text-align: center;
+        }
+
+        .fabric-chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            justify-content: center;
+            min-height: 30px;
+        }
+
+        .fabric-chip {
+            background: linear-gradient(135deg, #664ba2, #8a6bb1);
+            color: white;
+            padding: 3px 8px;
+            border-radius: 10px;
+            font-size: 0.75em;
+            box-shadow: 0 1px 3px rgba(102, 73, 162, 0.2);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+        }
+
+        .fabric-chip:hover {
+            background: linear-gradient(135deg, #ff7f50, #ff9966);
+            transform: scale(1.05);
+        }
+
+        .fabric-chip.correct {
+            background: linear-gradient(135deg, #28a745, #34ce57);
+            border: 1px solid #155724;
+        }
+
+        .fabric-chip.incorrect {
+            background: linear-gradient(135deg, #dc3545, #fd7e14);
+            border: 1px solid #721c24;
+        }
+
+        .controls {
+            text-align: center;
+            padding: 10px;
+            background: #f8f9ff;
+            margin-top: auto;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #664ba2, #8a6bb1);
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 15px;
+            font-size: 0.85em;
+            font-weight: bold;
+            cursor: pointer;
+            margin: 0 5px;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 4px rgba(102, 73, 162, 0.3);
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 3px 6px rgba(102, 73, 162, 0.4);
+            background: linear-gradient(135deg, #ff7f50, #ff9966);
+        }
+
+        .btn.reset {
+            background: linear-gradient(135deg, #dc3545, #fd7e14);
+        }
+
+        .btn.reset:hover {
+            background: linear-gradient(135deg, #c82333, #e96900);
+        }
+
+        .btn.show-answers {
+            background: linear-gradient(135deg, #28a745, #34ce57);
+        }
+
+        .btn.show-answers:hover {
+            background: linear-gradient(135deg, #218838, #28a745);
+        }
+
+        .score {
+            font-size: 1em;
+            font-weight: bold;
+            color: #664ba2;
+            margin-top: 8px;
+        }
+
+        .feedback {
+            padding: 8px;
+            margin: 8px 10px;
+            border-radius: 5px;
+            font-weight: bold;
+            text-align: center;
+            display: none;
+            font-size: 0.85em;
+        }
+
+        .feedback.success {
+            background: #e6f7e6;
+            color: #2d5a2d;
+            border: 1px solid #664ba2;
+        }
+
+        .feedback.error {
+            background: #ffe6e6;
+            color: #802020;
+            border: 1px solid #ff7f50;
+        }
+
+        .answers-section {
+            background: #e6f7e6;
+            padding: 10px;
+            margin: 10px;
+            border-radius: 5px;
+            border: 1px solid #28a745;
+            display: none;
+            font-size: 0.85em;
+        }
+
+        .answers-section h3 {
+            color: #155724;
+            margin-bottom: 8px;
+            text-align: center;
+            font-size: 1em;
+        }
+
+        .answer-item {
+            background: white;
+            padding: 6px;
+            margin: 5px 0;
+            border-radius: 4px;
+            border-left: 2px solid #28a745;
+        }
+
+        .answer-fabric {
+            font-weight: bold;
+            color: #155724;
+            font-size: 0.9em;
+        }
+
+        .answer-sources {
+            color: #495057;
+            font-size: 0.8em;
+            margin-top: 3px;
+        }
+
+        @media (max-width: 768px) {
+            .logo {
+                width: 80px;
+                top: 5px;
+                right: 5px;
+            }
+            
+            .container {
+                margin-top: 30px;
+            }
+            
+            .header h1 {
+                font-size: 1.2em;
+            }
+            
+            .fabrics-row, .sources-row {
+                gap: 5px;
+            }
+            
+            .source-item {
+                min-width: 150px;
+                padding: 15px;
+            }
+            
+            .source-icon {
+                width: 90px;
+                height: 90px;
+            }
+            
+            .btn {
+                padding: 6px 12px;
+                font-size: 0.8em;
+                margin: 0 3px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Logo SVG -->
+    <svg class="logo" viewBox="0 0 400 120" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+            <linearGradient id="logoGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" style="stop-color:#664ba2;stop-opacity:1" />
+                <stop offset="100%" style="stop-color:#8a6bb1;stop-opacity:1" />
+            </linearGradient>
+        </defs>
+        <path d="M0 20 Q0 0 20 0 L320 0 Q340 0 360 20 Q380 40 380 60 Q380 80 360 100 Q340 120 320 120 L60 120 Q40 120 20 100 Q0 80 0 60 Z" fill="url(#logoGradient)"/>
+        <text x="30" y="80" font-family="Arial, sans-serif" font-size="60" font-weight="bold" fill="white">1oh</text>
+        <text x="180" y="80" font-family="Arial, sans-serif" font-size="60" font-weight="bold" fill="#ff7f50">five</text>
+    </svg>
+
+    <div class="container">
+        <div class="header">
+            <h1>🧵 Fabric Sources Matching Game 🧵</h1>
+            <p>Learn about different fabric materials and their origins!</p>
+        </div>
+
+        <div class="instructions">
+            <h3>📋 Instructions:</h3>
+            <p><strong>Drag and drop</strong> the fabric names to their correct sources. Some fabrics may come from multiple sources, and some sources may produce multiple fabrics. Click <strong>"Check Answers"</strong> when you're done!</p>
+        </div>
+
+        <div class="feedback" id="feedback"></div>
+
+        <div class="answers-section" id="answers-section">
+            <h3>✅ Correct Answers:</h3>
+            <div id="correct-answers-list"></div>
+        </div>
+
+        <!-- Fabrics Row at Top -->
+        <div class="fabrics-container">
+            <div class="fabrics-row" id="fabric-pool">
+                <div class="fabric-item" draggable="true" data-fabric="lycra">Lycra</div>
+                <div class="fabric-item" draggable="true" data-fabric="wool">Wool</div>
+                <div class="fabric-item" draggable="true" data-fabric="silk">Silk</div>
+                <div class="fabric-item" draggable="true" data-fabric="leather">Leather</div>
+                <div class="fabric-item" draggable="true" data-fabric="linen">Linen</div>
+                <div class="fabric-item" draggable="true" data-fabric="nylon">Nylon</div>
+                <div class="fabric-item" draggable="true" data-fabric="cotton">Cotton</div>
+                <div class="fabric-item" draggable="true" data-fabric="satin">Satin</div>
+                <div class="fabric-item" draggable="true" data-fabric="velvet">Velvet</div>
+                <div class="fabric-item" draggable="true" data-fabric="denim">Denim</div>
+                <div class="fabric-item" draggable="true" data-fabric="polyester">Polyester</div>
+            </div>
+        </div>
+
+        <!-- Sources Row at Bottom -->
+        <div class="sources-container">
+            <div class="sources-row">
+                <div class="source-item" data-source="cotton">
+                    <div class="source-header">
+                        <img class="source-icon" src="images/cotton.jpg" alt="Cotton Plant">
+                        <div class="source-name">Cotton Plant</div>
+                    </div>
+                    <div class="fabric-chips" id="cotton-chips"></div>
+                </div>
+
+                <div class="source-item" data-source="sheep">
+                    <div class="source-header">
+                        <img class="source-icon" src="images/sheep.jpg" alt="Sheep Hair">
+                        <div class="source-name">Sheep Hair</div>
+                    </div>
+                    <div class="fabric-chips" id="sheep-chips"></div>
+                </div>
+
+                <div class="source-item" data-source="silkworm">
+                    <div class="source-header">
+                        <img class="source-icon" src="images/silkworm.jpg" alt="Silkworm Cocoon">
+                        <div class="source-name">Silkworm Cocoon</div>
+                    </div>
+                    <div class="fabric-chips" id="silkworm-chips"></div>
+                </div>
+
+                <div class="source-item" data-source="animal-skin">
+                    <div class="source-header">
+                        <img class="source-icon" src="images/cow skin.jpg" alt="Animal Skin">
+                        <div class="source-name">Animal Skin</div>
+                    </div>
+                    <div class="fabric-chips" id="animal-skin-chips"></div>
+                </div>
+
+                <div class="source-item" data-source="flax">
+                    <div class="source-header">
+                        <img class="source-icon" src="images/flax.jpg" alt="Flax Plant">
+                        <div class="source-name">Flax Plant</div>
+                    </div>
+                    <div class="fabric-chips" id="flax-chips"></div>
+                </div>
+
+                <div class="source-item" data-source="synthetic">
+                    <div class="source-header">
+                        <img class="source-icon" src="images/synthetic.jpg" alt="Synthetic/Man-made">
+                        <div class="source-name">Synthetic/Man-made</div>
+                    </div>
+                    <div class="fabric-chips" id="synthetic-chips"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <button class="btn" onclick="checkAnswers()">Check Answers</button>
+            <button class="btn show-answers" onclick="showCorrectAnswers()">Show Correct Answers</button>
+            <button class="btn reset" onclick="resetGame()">Reset Game</button>
+            <div class="score" id="score">Score: 0/11</div>
+        </div>
+    </div>
+
+    <script>
+        // Correct answers mapping
+        const correctAnswers = {
+            'lycra': ['synthetic'],
+            'wool': ['sheep'],
+            'silk': ['silkworm'],
+            'leather': ['animal-skin'],
+            'linen': ['flax'],
+            'nylon': ['synthetic'],
+            'cotton': ['cotton'],
+            'satin': ['silkworm', 'synthetic'],
+            'velvet': ['silkworm', 'cotton', 'synthetic'],
+            'denim': ['cotton'],
+            'polyester': ['synthetic']
+        };
+
+        // Source names for display
+        const sourceNames = {
+            'cotton': 'Cotton Plant',
+            'sheep': 'Sheep Hair',
+            'silkworm': 'Silkworm Cocoon',
+            'animal-skin': 'Animal Skin',
+            'flax': 'Flax Plant',
+            'synthetic': 'Synthetic/Man-made'
+        };
+
+        // Current user answers
+        let userAnswers = {};
+        let gameCompleted = false;
+
+        // Initialize drag and drop functionality
+        function initializeDragDrop() {
+            const fabrics = document.querySelectorAll('.fabric-item');
+            const sources = document.querySelectorAll('.source-item');
+
+            fabrics.forEach(fabric => {
+                fabric.addEventListener('dragstart', handleDragStart);
+                fabric.addEventListener('dragend', handleDragEnd);
+            });
+
+            sources.forEach(source => {
+                source.addEventListener('dragover', handleDragOver);
+                source.addEventListener('drop', handleDrop);
+                source.addEventListener('dragenter', handleDragEnter);
+                source.addEventListener('dragleave', handleDragLeave);
+            });
+        }
+
+        function handleDragStart(e) {
+            e.dataTransfer.setData('text/plain', e.target.dataset.fabric);
+            e.target.classList.add('dragging');
+        }
+
+        function handleDragEnd(e) {
+            e.target.classList.remove('dragging');
+        }
+
+        function handleDragOver(e) {
+            e.preventDefault();
+        }
+
+        function handleDragEnter(e) {
+            e.preventDefault();
+            e.currentTarget.classList.add('drag-over');
+        }
+
+        function handleDragLeave(e) {
+            e.currentTarget.classList.remove('drag-over');
+        }
+
+        function handleDrop(e) {
+            e.preventDefault();
+            e.currentTarget.classList.remove('drag-over');
+            
+            const fabricName = e.dataTransfer.getData('text/plain');
+            const sourceName = e.currentTarget.dataset.source;
+            
+            addFabricToSource(fabricName, sourceName);
+        }
+
+        function addFabricToSource(fabricName, sourceName) {
+            if (!userAnswers[fabricName]) {
+                userAnswers[fabricName] = [];
+            }
+            
+            if (!userAnswers[fabricName].includes(sourceName)) {
+                userAnswers[fabricName].push(sourceName);
+                
+                const chip = document.createElement('div');
+                chip.className = 'fabric-chip';
+                chip.textContent = fabricName.charAt(0).toUpperCase() + fabricName.slice(1);
+                chip.onclick = () => removeFabricFromSource(fabricName, sourceName, chip);
+                
+                const chipsContainer = document.getElementById(sourceName + '-chips');
+                chipsContainer.appendChild(chip);
+            }
+        }
+
+        function removeFabricFromSource(fabricName, sourceName, chipElement) {
+            if (userAnswers[fabricName]) {
+                userAnswers[fabricName] = userAnswers[fabricName].filter(s => s !== sourceName);
+                if (userAnswers[fabricName].length === 0) {
+                    delete userAnswers[fabricName];
+                }
+            }
+            chipElement.remove();
+        }
+
+        function checkAnswers() {
+            let correct = 0;
+            let total = Object.keys(correctAnswers).length;
+            
+            const feedback = document.getElementById('feedback');
+            feedback.style.display = 'none';
+            
+            document.querySelectorAll('.fabric-chip').forEach(chip => {
+                chip.classList.remove('correct', 'incorrect');
+            });
+            
+            for (const fabric in correctAnswers) {
+                const correctSources = correctAnswers[fabric];
+                const userSources = userAnswers[fabric] || [];
+                
+                const hasAllCorrect = correctSources.every(source => userSources.includes(source));
+                const hasOnlyCorrect = userSources.every(source => correctSources.includes(source));
+                
+                if (hasAllCorrect && hasOnlyCorrect && userSources.length > 0) {
+                    correct++;
+                    userSources.forEach(source => {
+                        const chipsContainer = document.getElementById(source + '-chips');
+                        const chips = chipsContainer.querySelectorAll('.fabric-chip');
+                        chips.forEach(chip => {
+                            if (chip.textContent.toLowerCase() === fabric) {
+                                chip.classList.add('correct');
+                            }
+                        });
+                    });
+                } else {
+                    userSources.forEach(source => {
+                        const chipsContainer = document.getElementById(source + '-chips');
+                        const chips = chipsContainer.querySelectorAll('.fabric-chip');
+                        chips.forEach(chip => {
+                            if (chip.textContent.toLowerCase() === fabric) {
+                                chip.classList.add('incorrect');
+                            }
+                        });
+                    });
+                }
+            }
+            
+            document.getElementById('score').textContent = `Score: ${correct}/${total}`;
+            
+            feedback.style.display = 'block';
+            if (correct === total) {
+                feedback.className = 'feedback success';
+                feedback.textContent = '🎉 Excellent! You got all the answers correct! 🎉';
+                gameCompleted = true;
+                showCorrectAnswers();
+            } else {
+                feedback.className = 'feedback error';
+                feedback.textContent = `Good try! You got ${correct} out of ${total} correct. Keep trying!`;
+            }
+        }
+
+        function showCorrectAnswers() {
+            const answersSection = document.getElementById('answers-section');
+            const answersList = document.getElementById('correct-answers-list');
+            
+            answersList.innerHTML = '';
+            
+            for (const fabric in correctAnswers) {
+                const sources = correctAnswers[fabric];
+                const answerItem = document.createElement('div');
+                answerItem.className = 'answer-item';
+                
+                const fabricName = document.createElement('div');
+                fabricName.className = 'answer-fabric';
+                fabricName.textContent = fabric.charAt(0).toUpperCase() + fabric.slice(1);
+                
+                const sourcesText = document.createElement('div');
+                sourcesText.className = 'answer-sources';
+                sourcesText.textContent = 'Sources: ' + sources.map(source => sourceNames[source]).join(', ');
+                
+                answerItem.appendChild(fabricName);
+                answerItem.appendChild(sourcesText);
+                answersList.appendChild(answerItem);
+            }
+            
+            answersSection.style.display = 'block';
+        }
+
+        function resetGame() {
+            userAnswers = {};
+            gameCompleted = false;
+            
+            const chipContainers = document.querySelectorAll('.fabric-chips');
+            chipContainers.forEach(container => {
+                container.innerHTML = '';
+            });
+            
+            document.getElementById('score').textContent = 'Score: 0/11';
+            const feedback = document.getElementById('feedback');
+            feedback.style.display = 'none';
+            
+            const answersSection = document.getElementById('answers-section');
+            answersSection.style.display = 'none';
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeDragDrop();
+        });
+    </script>
+</body>
+</html>
